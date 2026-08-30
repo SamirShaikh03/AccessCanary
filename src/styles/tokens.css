@@ -1,0 +1,101 @@
+/**
+ * AccessCanary Design Tokens
+ * ---------------------------------------------------------------------------
+ * Single source of truth for color, type, spacing, and motion. The palette
+ * follows a "signal light" logic (safe / checking / broken) because the
+ * product's actual subject is state: is this element accessible right now,
+ * or not. Green / amber / red carries real meaning here, not decoration.
+ *
+ * Deliberately avoiding the two most common AI-generated defaults: warm
+ * cream + terracotta, and near-black + acid accent. This palette is a warm,
+ * grounded forest-green dark mode instead — chosen because it reads as
+ * "institutional but alive," matching a civic tool that cares about people.
+ */
+
+:root {
+  /* ---- Color: surfaces ---- */
+  --color-bg: #0b1f17;               /* deep forest, not pure black */
+  --color-bg-raised: #122a20;        /* panels sit one step up */
+  --color-bg-inset: #0f251b;         /* wells / inputs sit one step down */
+  --color-surface-border: #1f4231;
+
+  /* ---- Color: text ---- */
+  --color-text: #f5f3ec;             /* warm bone, not stark white */
+  --color-text-muted: #a9bcb0;
+  --color-text-faint: #7a8b7f;
+
+  /* ---- Color: signal states (the product's actual visual language) ---- */
+  --color-safe: #2d6a4f;             /* confirmed accessible */
+  --color-safe-bright: #52b788;
+  --color-checking: #e8b94a;         /* agent is actively probing */
+  --color-checking-bright: #f3d17a;
+  --color-violation: #c1432a;        /* confirmed broken */
+  --color-violation-bright: #e8654a;
+
+  /* ---- Color: interactive ---- */
+  --color-focus-ring: #f3d17a;       /* deliberately == checking-bright:
+                                         focus IS the thing being observed */
+  --color-link: #7ec9a3;
+
+  /* ---- Typography ---- */
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.5rem;
+  --text-4xl: 3.5rem;
+
+  --leading-tight: 1.15;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+
+  /* ---- Spacing (4px base scale) ---- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
+  --space-10: 4rem;
+  --space-12: 6rem;
+
+  /* ---- Radius ---- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  /* ---- Motion ---- */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 220ms;
+  --duration-slow: 420ms;
+
+  /* ---- Elevation ---- */
+  --shadow-panel: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --shadow-focus-glow: 0 0 0 3px rgba(243, 209, 122, 0.35);
+}
+
+/* Respect reduced-motion preference (quality floor, not optional) */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+    --duration-slow: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
