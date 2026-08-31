@@ -1,0 +1,205 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  max-height: calc(100vh - var(--space-12));
+  overflow-y: auto;
+}
+
+.sectionLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-faint);
+  margin-bottom: var(--space-3);
+}
+
+.emptyState {
+  font-size: var(--text-sm);
+  color: var(--color-text-faint);
+  line-height: var(--leading-relaxed);
+}
+
+/* ---- Live activity feed ---- */
+
+.feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.feedItem {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  animation: feedIn var(--duration-base) var(--ease-emphasized);
+}
+
+@keyframes feedIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.feedDot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--color-checking-bright);
+}
+
+.feedItem[data-status='complete'] .feedDot {
+  background: var(--color-safe-bright);
+}
+
+.feedItem[data-status='flagged'] .feedDot {
+  background: var(--color-violation-bright);
+  box-shadow: 0 0 0 3px rgba(232, 101, 74, 0.2);
+}
+
+.toolName {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-checking-bright);
+}
+
+.feedMessage {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: var(--leading-normal);
+  margin: var(--space-1) 0 0;
+}
+
+/* ---- Pending violation cards ---- */
+
+.pendingList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pendingCard {
+  padding: var(--space-4);
+  background: var(--color-bg-inset);
+  border: 1px solid var(--color-violation);
+  border-radius: var(--radius-md);
+  animation: feedIn var(--duration-base) var(--ease-emphasized);
+}
+
+.pendingHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.selectorText {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+}
+
+.pendingDescription {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  line-height: var(--leading-normal);
+  margin: 0 0 var(--space-4);
+}
+
+.pendingActions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.confirmButton,
+.dismissButton {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.confirmButton {
+  background: var(--color-violation-bright);
+  color: var(--color-bg);
+  border: none;
+}
+
+.confirmButton:hover {
+  transform: translateY(-1px);
+}
+
+.dismissButton {
+  background: transparent;
+  color: var(--color-text-faint);
+  border: 1px solid var(--color-surface-border);
+}
+
+.dismissButton:hover {
+  color: var(--color-text-muted);
+}
+
+/* ---- Severity badge (shared by pending + confirmed) ---- */
+
+.severityBadge {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.severityBadge[data-severity='critical'] {
+  background: rgba(193, 67, 42, 0.2);
+  color: var(--color-violation-bright);
+}
+
+.severityBadge[data-severity='serious'] {
+  background: rgba(232, 185, 74, 0.18);
+  color: var(--color-checking-bright);
+}
+
+.severityBadge[data-severity='moderate'] {
+  background: rgba(122, 139, 127, 0.2);
+  color: var(--color-text-muted);
+}
+
+/* ---- Confirmed violations list ---- */
+
+.confirmedList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.confirmedItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
