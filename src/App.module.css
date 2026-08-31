@@ -1,0 +1,68 @@
+.shell {
+  min-height: 100vh;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) var(--space-12);
+}
+
+.header {
+  max-width: 640px;
+  margin-bottom: var(--space-10);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-checking-bright);
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  font-size: var(--text-4xl);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+
+.subtitle {
+  font-size: var(--text-lg);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-muted);
+}
+
+.stage {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .stage {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stageLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-faint);
+  margin-bottom: var(--space-3);
+}
+
+.theatre {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.observerPanel {
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: var(--space-6);
+}
