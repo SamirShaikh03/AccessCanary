@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BenefitsForm } from './components/form/BenefitsForm';
 import { FocusTraceOverlay } from './components/theatre/FocusTraceOverlay';
 import { NarrationPanel } from './components/panel/NarrationPanel';
@@ -17,22 +17,42 @@ import styles from './App.module.css';
 function AppShell() {
   useAccessibilityTools();
   const theatreRef = useRef<HTMLElement>(null);
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
 
   useEffect(() => {
     initLiveRegionObserver();
   }, []);
 
+  useEffect(() => {
+    document.body.dataset.theme = theme;
+    document.body.style.background = theme === 'light' ? '#edf4f0' : '#0b1f17';
+  }, [theme]);
+
   return (
-    <div className={styles.shell}>
-      <header className={styles.header}>
-        <p className={styles.eyebrow}>WebMCP Accessibility Copilot</p>
-        <h1 className={styles.title}>AccessCanary</h1>
-        <p className={styles.subtitle}>
-          Automated scanners catch roughly a third of accessibility issues. The rest only
-          surface when something actually operates the page - which is what an agent can do
-          here, through WebMCP.
-        </p>
-      </header>
+    <div className={styles.shell} data-theme={theme}>
+      <div className={styles.topBar}>
+        <header className={styles.header}>
+          <p className={styles.eyebrow}>WebMCP Accessibility Copilot</p>
+          <h1 className={styles.title}>AccessCanary</h1>
+          <p className={styles.subtitle}>
+            Automated scanners catch roughly a third of accessibility issues. The rest only
+            surface when something actually operates the page - which is what an agent can do
+            here, through WebMCP.
+          </p>
+        </header>
+
+        <button
+          type="button"
+          className={styles.themeToggle}
+          aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
+          aria-pressed={theme === 'light'}
+          onClick={() => setTheme((current) => (current === 'light' ? 'dark' : 'light'))}
+        >
+          <span className={styles.themeToggleIcon} aria-hidden="true">
+            {theme === 'light' ? '☾' : '☀'}
+          </span>
+        </button>
+      </div>
 
       <main className={styles.stage}>
         <section ref={theatreRef} className={styles.theatre} aria-label="Mock benefits application">

@@ -26,8 +26,12 @@ export function NarrationProvider({ children }: { children: ReactNode }) {
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   }
 
+  function clearEntries(): void {
+    setEntries([]);
+  }
+
   return (
-    <NarrationContext.Provider value={{ entries, addEntry, updateEntry }}>
+    <NarrationContext.Provider value={{ entries, addEntry, updateEntry, clearEntries }}>
       {children}
     </NarrationContext.Provider>
   );

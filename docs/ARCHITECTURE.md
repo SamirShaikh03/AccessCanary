@@ -1,21 +1,26 @@
 # Architecture
 
-This document explains how AccessCanary is put together: the layer structure, how data
-flows through a single tool call, and why each major structural decision was made.
+**Read this if:** you want to understand how AccessCanary is structured, how a WebMCP tool call flows from agent to DOM to UI, why the human-confirmation gate exists, or how the design decisions support a 30–40% coverage gap that automated scanners can't close.
+
+## Table of Contents
+
+- [System overview](#system-overview)
+- [Layer structure](#layer-structure)
+- [Data flow: a single tool call](#data-flow-a-single-tool-call-end-to-end)
+- [Data flow: human-in-the-loop confirmation](#data-flow-the-human-in-the-loop-confirmation-cycle)
+- [Why React Context instead of Redux/Zustand](#why-react-context-instead-of-reduxzustand)
+- [Why JSON Schema instead of Zod](#why-json-schema-instead-of-zod-for-tool-schemas)
+- [The focus-trace overlay](#the-focus-trace-overlays-mechanism)
 
 ## System overview
 
-![placeholder: high-level architecture diagram showing the browser, the React app, the WebMCP tool layer, and an external AI agent connecting via document.modelContext](images/architecture-overview-placeholder.svg)
+![placeholder: high-level architecture diagram showing the browser, the React app, the WebMCP tool layer, and an external AI agent connecting via document.modelContext](images/architecture-overview.png)
 
-AccessCanary is a single-page React application with no backend. Everything — the mock
-form, the WebMCP tools, the violation store, the narration feed — runs entirely in the
-browser. An AI agent (via ChatGPT's in-app browser, or Chrome with the WebMCP flag
-enabled) connects to the page's `document.modelContext` and calls the six registered
-tools directly; there is no server-side component in this architecture at all.
+AccessCanary is a single-page React application with **zero backend.** Everything runs in the browser: the mock form, the six WebMCP tools, the violation store, and the narration feed. An AI agent—via ChatGPT's in-app browser or Chrome with WebMCP enabled—connects to `document.modelContext` and calls the tools directly. No server involvement.
 
 ## Layer structure
 
-The codebase is organized into four layers, each with a single, clear responsibility:
+The codebase is organized into four layers, each with a single responsibility:
 
 ```
 src/
@@ -31,93 +36,50 @@ src/
                      overlay, and the narration panel.
 ```
 
-![placeholder: layer diagram showing lib -> store -> hooks -> components with arrows indicating dependency direction](images/layer-diagram-placeholder.svg)
+![placeholder: layer diagram showing lib -> store -> hooks -> components with arrows indicating dependency direction](images/layer-diagram.png)
 
-This separation exists for a concrete reason, not just tidiness: `lib/domInspection.ts`
-and `lib/liveRegionTracker.ts` can be unit-tested with plain Vitest + jsdom, with zero
-WebMCP or React test scaffolding required. See `docs/TESTING.md`.
+This separation exists for concrete testability: `lib/domInspection.ts` and `lib/liveRegionTracker.ts` can run under Vitest + jsdom with zero WebMCP or React scaffolding. See [`docs/TESTING.md`](TESTING.md).
 
 ## Data flow: a single tool call, end to end
 
-![placeholder: sequence diagram — Agent calls get_focus_order, tool queries DOM via lib function, narration store updates, panel re-renders](images/tool-call-sequence-placeholder.svg)
+![placeholder: sequence diagram — Agent calls get_focus_order, tool queries DOM via lib function, narration store updates, panel re-renders](images/tool-call-sequence.png)
 
-Walking through what happens when an agent calls `get_focus_order`:
+Here's what happens when an agent calls `get_focus_order`:
 
-1. **Agent calls the tool.** The agent (via its WebMCP client) invokes
-   `get_focus_order` with a `startSelector` argument, through
-   `document.modelContext`.
-2. **`useAccessibilityTools` receives the call.** The tool's `execute` function
-   runs inside React, with access to the narration store via `useNarrationStore()`.
-3. **A "running" narration entry is posted immediately** — `addEntry('get_focus_order',
-   'Checking tab order from ...')` — so the panel shows activity the instant the call
-   starts, not only once it resolves.
-4. **The pure logic layer does the actual work.** `getFocusOrder()` in
-   `lib/domInspection.ts` queries the live DOM: it collects all focusable elements,
-   separates out any with a positive `tabIndex`, sorts those by tabIndex value (per the
-   HTML spec), and returns the resulting sequence starting from the requested element.
-   This function has no knowledge of React or WebMCP — it's pure DOM + data.
-5. **The result is reshaped for the tool boundary.** A small mapper (`plainFocusStep`)
-   converts the typed domain objects into plain object literals matching the tool's
-   JSON-Schema-derived output type (see `docs/DEVELOPMENT.md` for why this reshaping step
-   exists).
-6. **The narration entry is resolved** — `updateEntry(entryId, { message: ..., status:
-   'complete' })` — with a human-readable summary of what was found.
-7. **React re-renders the narration panel**, which is subscribed to the narration
-   context, showing the new feed entry with its color-coded status dot.
-8. **The tool returns its structured result** back to the calling agent.
+1. **Agent invokes the tool** via WebMCP client, passing `startSelector` through `document.modelContext`.
+2. **`useAccessibilityTools` receives the call** inside React, with access to `useNarrationStore()`.
+3. **A "running" narration entry posts immediately** — `addEntry('get_focus_order', 'Checking tab order from ...')` — so the panel shows activity the instant the call starts, not after it resolves.
+4. **The pure logic layer does the actual work.** `getFocusOrder()` in `lib/domInspection.ts` collects all focusable elements, separates and sorts any with positive `tabIndex` (per the HTML spec), and returns the sequence from the requested element. This function has zero React/WebMCP knowledge—it's pure DOM + data.
+5. **The result is reshaped for the tool boundary.** A mapper (`plainFocusStep`) converts typed domain objects into plain literals matching the JSON-Schema output type. (See [`docs/DEVELOPMENT.md`](DEVELOPMENT.md) for why this reshaping layer exists.)
+6. **The narration entry resolves** — `updateEntry(entryId, { message: ..., status: 'complete' })` — with a human-readable summary.
+7. **React re-renders the panel**, subscribed to the narration context, showing the new entry with its color-coded status dot.
+8. **The tool returns structured result** back to the calling agent.
 
 ## Data flow: the human-in-the-loop confirmation cycle
 
-![placeholder: flow diagram showing report_violation -> pending state -> human clicks confirm/dismiss -> confirmed violations log](images/confirmation-cycle-placeholder.svg)
+![placeholder: flow diagram showing report_violation -> pending state -> human clicks confirm/dismiss -> confirmed violations log](images/confirmation-cycle.png)
 
-This is the project's central mechanism, and it deliberately does **not** let the agent
-log a finding unilaterally:
+This is AccessCanary's central mechanism: the one state-changing tool **does not** execute findings unilaterally:
 
-1. The agent calls `report_violation` with a category, severity, description, and
-   selector.
-2. Inside `useAccessibilityTools`, this calls `proposeViolation()` on the violations
-   store — which generates a `pendingId` and adds the finding to a **pending** list, NOT
-   the confirmed violations list.
-3. The tool returns `{ pendingId, status: 'awaiting_human_confirmation' }` to the agent —
-   the agent is explicitly told its finding has not been logged yet.
-4. The `NarrationPanel` renders a `PendingViolationCard` for this finding, with visible
-   Confirm and Dismiss buttons.
-5. **Only a human clicking Confirm** moves the finding from `pending` into the permanent
-   `violations` array (assigning a real `id` and `timestamp` at that point). Clicking
-   Dismiss removes it from `pending` with no further trace.
-6. `get_violation_log`, when later called by the agent, can only ever see the confirmed
-   `violations` array — proposed-but-unconfirmed findings are invisible to it.
+1. Agent calls `report_violation` with category, severity, description, and selector.
+2. `useAccessibilityTools` calls `proposeViolation()` on the violations store—which adds the finding to **pending**, NOT confirmed.
+3. Tool returns `{ pendingId, status: 'awaiting_human_confirmation' }` — explicitly telling the agent: *not logged yet.*
+4. `NarrationPanel` renders a `PendingViolationCard` with visible Confirm and Dismiss buttons.
+5. **Only human confirmation** moves the finding from `pending` to the permanent `violations` array (assigning a real `id` and `timestamp`). Dismiss removes it entirely.
+6. `get_violation_log` only ever sees the confirmed `violations` array—proposed-but-unconfirmed findings are invisible to it.
 
-This is what "thoughtful use of WebMCP" means concretely in this project: the one
-state-changing tool (`report_violation`) is explicitly annotated `readOnlyHint: false`,
-and its actual effect is gated behind a human decision, not executed directly.
+This is what "thoughtful WebMCP" means concretely: the state-changing tool is annotated `readOnlyHint: false`, but its actual effect is gated behind human decision, not direct execution.
 
 ## Why React Context instead of Redux/Zustand
 
-Two small stores (`violationsStore` and `narrationStore`), each with 2–3 actions, on a
-single-page app with one active user session. An external state management library would
-add a dependency and boilerplate with no corresponding benefit at this scale — React's
-built-in `useReducer` + `Context` is the right-sized tool. See `docs/DEVELOPMENT.md` for
-the fuller reasoning trail, including where an earlier design (Zod-based schemas) was
-reconsidered for a similar "avoid unnecessary complexity/coupling" reason.
+Two small stores (`violationsStore` and `narrationStore`), each with 2–3 actions, on a single-page app with one user session. An external library adds dependency weight and boilerplate with no benefit at this scale. React's `useReducer` + `Context` is the right-sized tool. (See [`docs/DEVELOPMENT.md`](DEVELOPMENT.md) for the fuller reasoning, including why an earlier design with Zod-based schemas was reconsidered for the same "avoid unnecessary complexity/coupling" reason.)
 
 ## Why JSON Schema instead of Zod for tool schemas
 
-Documented in full in `docs/DEVELOPMENT.md` — in short, the installed Zod version (v4)
-did not structurally match what `@mcp-b/react-webmcp`'s Zod-map overload expects
-internally (the package has no declared Zod peer dependency), so plain JSON Schema was
-used instead: zero version-coupling risk, and it's the format the package's own official
-examples show first.
+Documented in full in [`docs/DEVELOPMENT.md`](DEVELOPMENT.md): the installed Zod version (v4) doesn't match what `@mcp-b/react-webmcp` expects internally (v3 shape), since Zod isn't a declared peer dependency. Plain JSON Schema has zero version-coupling risk and is the format the package's own official examples show first.
 
 ## The focus-trace overlay's mechanism
 
-![placeholder: diagram showing focusin event -> containerRef bounding rect diff -> CSS transform on the trace dot](images/focus-trace-mechanism-placeholder.svg)
+![placeholder: diagram showing focusin event -> containerRef bounding rect diff -> CSS transform on the trace dot](images/focus-trace-mechanism.png)
 
-`FocusTraceOverlay` listens for the browser's native `focusin` event on `document`. On
-each event, it checks whether the newly focused element is inside the theatre container
-(via `containerRef`), and if so, computes the element's center point relative to the
-container using `getBoundingClientRect()` on both. That position is applied to a small
-dot via a CSS `transform: translate()`, animated with a `transition`, so the dot visibly
-glides to wherever focus currently is — including into the broken states (the misordered
-submit button, the trapped date-picker), making the underlying bug visible without any
-narration text required.
+`FocusTraceOverlay` listens for the browser's native `focusin` event. On each event, it checks whether the focused element is inside the form container (via `containerRef`), and if so, computes the element's center point relative to the container using `getBoundingClientRect()`. That position is applied to a glowing dot via CSS `transform: translate()`, animated with a `transition`. The dot visibly glides to wherever focus is—including into broken states (the misordered submit button, the trapped date-picker)—making the underlying bug visible without narration text required.

@@ -3,7 +3,6 @@ import styles from './NarrationPanel.module.css';
 interface PendingViolationCardProps {
   description: string;
   selector: string;
-  severity: string;
   onConfirm: () => void;
   onDismiss: () => void;
 }
@@ -18,25 +17,50 @@ interface PendingViolationCardProps {
 export function PendingViolationCard({
   description,
   selector,
-  severity,
   onConfirm,
   onDismiss,
 }: PendingViolationCardProps) {
+  const headline = selector ? `Focus jumped to <${selector}> — expected next field.` : 'Unexpected focus jump';
+
   return (
     <div className={styles.pendingCard} role="alert">
-      <div className={styles.pendingHeader}>
-        <span className={styles.severityBadge} data-severity={severity}>
-          {severity}
-        </span>
-        <code className={styles.selectorText}>{selector}</code>
+      <div className={styles.pendingHeaderRow}>
+        <span className={styles.pendingBadge}>Pending violation</span>
+        <time className={styles.pendingTimestamp}>Just now</time>
       </div>
-      <p className={styles.pendingDescription}>{description}</p>
+
+      <div className={styles.pendingBody}>
+        <span className={styles.pendingIcon} aria-hidden="true">
+          !
+        </span>
+
+        <div className={styles.pendingContent}>
+          <p className={styles.pendingHeadline}>
+            {headline.split('<').map((part, index) => {
+              if (index === 0) return part;
+              const end = part.indexOf('>');
+              if (end === -1) return `<${part}`;
+              const before = part.slice(0, end);
+              const after = part.slice(end + 1);
+              return (
+                <>
+                  <code key={`code-${index}`}>{`<${before}>`}</code>
+                  {after}
+                </>
+              );
+            })}
+          </p>
+
+          <p className={styles.pendingDescription}>{description}</p>
+        </div>
+      </div>
+
       <div className={styles.pendingActions}>
-        <button type="button" className={styles.confirmButton} onClick={onConfirm}>
-          Confirm finding
-        </button>
         <button type="button" className={styles.dismissButton} onClick={onDismiss}>
           Dismiss
+        </button>
+        <button type="button" className={styles.confirmButton} onClick={onConfirm}>
+          Confirm violation
         </button>
       </div>
     </div>

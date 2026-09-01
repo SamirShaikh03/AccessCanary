@@ -20,21 +20,20 @@
   --color-surface-border: #1f4231;
 
   /* ---- Color: text ---- */
-  --color-text: #f5f3ec;             /* warm bone, not stark white */
-  --color-text-muted: #a9bcb0;
-  --color-text-faint: #7a8b7f;
+  --color-text: #edf5ef;             /* cool mist / forest-neutral, not beige */
+  --color-text-muted: #b5c8bd;
+  --color-text-faint: #7d9188;
 
   /* ---- Color: signal states (the product's actual visual language) ---- */
   --color-safe: #2d6a4f;             /* confirmed accessible */
   --color-safe-bright: #52b788;
-  --color-checking: #e8b94a;         /* agent is actively probing */
-  --color-checking-bright: #f3d17a;
+  --color-checking: #7fc9aa;         /* agent is actively probing */
+  --color-checking-bright: #9ce0be;
   --color-violation: #c1432a;        /* confirmed broken */
   --color-violation-bright: #e8654a;
 
   /* ---- Color: interactive ---- */
-  --color-focus-ring: #f3d17a;       /* deliberately == checking-bright:
-                                         focus IS the thing being observed */
+  --color-focus-ring: #9ce0be;       /* cool mint focus ring to match the forest UI */
   --color-link: #7ec9a3;
 
   /* ---- Typography ---- */

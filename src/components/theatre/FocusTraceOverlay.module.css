@@ -23,6 +23,7 @@
   border-radius: 50%;
   background: var(--color-focus-ring);
   box-shadow: 0 0 12px 2px rgba(243, 209, 122, 0.6);
+  animation: spinningBeacon 2.4s linear infinite;
 }
 
 .pulse {
@@ -32,16 +33,29 @@
   margin: -5px 0 0 -5px;
   border-radius: 50%;
   border: 1.5px solid var(--color-focus-ring);
-  animation: pulseOut 1.4s var(--ease-standard) infinite;
+  animation: spinningBeacon 2.4s linear infinite;
 }
 
-@keyframes pulseOut {
-  0% {
-    transform: scale(1);
-    opacity: 0.9;
+/**
+ * Spinning Beacon Animation
+ *
+ * Replaces the expanding ripple and breathing glow with a continuous
+ * smooth rotation. Both the dot and its ring pulse rotate together,
+ * creating a "spinning beacon" effect that clearly signals active
+ * keyboard focus without pulsing, scaling, or expanding.
+ *
+ * Linear easing ensures smooth continuous motion.
+ * 2.4s cycle is fast enough to be obvious but slow enough to feel refined.
+ *
+ * Respects prefers-reduced-motion: the global tokens reduce
+ * --duration-slow to 0.01ms, causing this animation to immediately
+ * freeze (no rotation), leaving just the static glow.
+ */
+@keyframes spinningBeacon {
+  from {
+    transform: rotate(0deg);
   }
-  100% {
-    transform: scale(3.2);
-    opacity: 0;
+  to {
+    transform: rotate(360deg);
   }
 }
