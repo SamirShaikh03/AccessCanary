@@ -1,6 +1,0 @@
-<svg width="1200" height="600" viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1200" height="600" fill="#0b1f17"/>
-  <rect x="40" y="40" width="1120" height="520" rx="14" fill="none" stroke="#1f4231" stroke-width="2" stroke-dasharray="10 8"/>
-  <text x="600" y="280" text-anchor="middle" font-family="monospace" font-size="22" fill="#7a8b7f">PLACEHOLDER — replace with a real screenshot</text>
-  <text x="600" y="315" text-anchor="middle" font-family="monospace" font-size="16" fill="#7a8b7f">of the split-stage layout (form + narration panel)</text>
-</svg>
