@@ -3,7 +3,7 @@
 **An AI agent that catches accessibility bugs static scanners can't see.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![WebMCP Challenge 2026](https://img.shields.io/badge/WebMCP-Challenge%202026-blue)](https://www.anthropic.com/news/webmcp-challenges)
+[![WebMCP Challenge 2026](https://img.shields.io/badge/WebMCP-Challenge%202026-blue)](https://webmcp.devpost.com/)
 
 ---
 
@@ -69,7 +69,7 @@ To test the deployed version with a live AI agent:
 
 1. Open the live URL in Chrome.
 2. Enable `chrome://flags/#enable-webmcp-testing`, then relaunch Chrome.
-3. Install the [Model Context Tool Inspector](https://chrome.google.com/webstore) extension.
+3. Install the [Model Context Tool Inspector](https://chromewebstore.google.com/detail/webmcp-inspector/ddmnodehiebeklbngpeeghmcohomfimd) extension.
 4. Tab through the mock form — watch the **focus-trace dot** follow your keyboard focus and the **narration panel** report what each tool call finds.
 5. Trigger the income field's validation error and tab through the date picker more than twice to see each bug in action.
 6. Open the Tool Inspector to invoke tools directly and inspect raw input/output.
