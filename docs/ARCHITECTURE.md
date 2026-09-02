@@ -8,13 +8,30 @@
 - [Layer structure](#layer-structure)
 - [Data flow: a single tool call](#data-flow-a-single-tool-call-end-to-end)
 - [Data flow: human-in-the-loop confirmation](#data-flow-the-human-in-the-loop-confirmation-cycle)
+- [Evidence-backed handoff](#evidence-backed-handoff)
 - [Why React Context instead of Redux/Zustand](#why-react-context-instead-of-reduxzustand)
 - [Why JSON Schema instead of Zod](#why-json-schema-instead-of-zod-for-tool-schemas)
 - [The focus-trace overlay](#the-focus-trace-overlays-mechanism)
 
 ## System overview
 
-![placeholder: high-level architecture diagram showing the browser, the React app, the WebMCP tool layer, and an external AI agent connecting via document.modelContext](images/architecture-overview.png)
+```mermaid
+flowchart TB
+    agent["AI Agent"]
+
+    subgraph browser["Browser (Chrome / ChatGPT in-app browser)"]
+        subgraph app["React App (AccessCanary)"]
+            form["Mock benefits form (3 real a11y bugs)"]
+            stores["Violations + Narration store (React Context)"]
+            tools["6 WebMCP tools"]
+        end
+        context["document.modelContext (WebMCP tool registry)"]
+        app --- context
+        note["No backend — everything runs client-side in the browser."]
+    end
+
+    agent <--> |"calls tools / receives results"| context
+```
 
 AccessCanary is a single-page React application with **zero backend.** Everything runs in the browser: the mock form, the six WebMCP tools, the violation store, and the narration feed. An AI agent—via ChatGPT's in-app browser or Chrome with WebMCP enabled—connects to `document.modelContext` and calls the tools directly. No server involvement.
 
@@ -36,13 +53,39 @@ src/
                      overlay, and the narration panel.
 ```
 
-![placeholder: layer diagram showing lib -> store -> hooks -> components with arrows indicating dependency direction](images/layer-diagram.png)
+```mermaid
+flowchart TB
+    components["components/<br/>The UI: mock form with 3 bugs, focus-trace overlay, narration panel"]
+    hooks["hooks/<br/>useAccessibilityTools — registers the 6 WebMCP tools, applies character budgets + security annotations"]
+    store["store/<br/>React Context + reducer — violations and narration state"]
+    lib["lib/<br/>Pure, framework-independent DOM inspection logic. No React, no WebMCP. Unit-tested directly."]
+    testNote["Unit-testable in isolation — see domInspection.test.ts."]
+
+    components --> |"depends on"| hooks
+    hooks --> |"depends on"| store
+    store --> |"depends on"| lib
+    lib --- testNote
+```
 
 This separation exists for concrete testability: `lib/domInspection.ts` and `lib/liveRegionTracker.ts` can run under Vitest + jsdom with zero WebMCP or React scaffolding. See [`docs/TESTING.md`](TESTING.md).
 
 ## Data flow: a single tool call, end to end
 
-![placeholder: sequence diagram — Agent calls get_focus_order, tool queries DOM via lib function, narration store updates, panel re-renders](images/tool-call-sequence.png)
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant Tools as useAccessibilityTools (execute)
+    participant DOM as domInspection.ts (pure logic)
+    participant Panel as Narration Panel
+
+    Agent->>Tools: calls get_focus_order(startSelector)
+    Tools->>Panel: addEntry('running: checking tab order...')
+    Tools->>DOM: getFocusOrder(startSelector, limit)
+    DOM->>DOM: self-note: queries live DOM, sorts by tabIndex per HTML spec
+    DOM-->>Tools: returns FocusStep[]
+    Tools->>Panel: updateEntry('complete: traced N steps')
+    Tools-->>Agent: returns { steps }
+```
 
 Here's what happens when an agent calls `get_focus_order`:
 
@@ -57,7 +100,24 @@ Here's what happens when an agent calls `get_focus_order`:
 
 ## Data flow: the human-in-the-loop confirmation cycle
 
-![placeholder: flow diagram showing report_violation -> pending state -> human clicks confirm/dismiss -> confirmed violations log](images/confirmation-cycle.png)
+```mermaid
+flowchart TD
+    agent["Agent calls report_violation(category, severity, description, selector)"]
+    propose["proposeViolation() — added to PENDING list (not yet confirmed)"]
+    pending["PendingViolationCard rendered in the UI — human sees the finding with Confirm / Dismiss buttons"]
+    confirm["Human clicks Confirm"]
+    confirmed["Moved to CONFIRMED violations list — gets real id + timestamp"]
+    visible["get_violation_log can only ever see CONFIRMED violations — pending findings are invisible to the agent."]
+    dismiss["Human clicks Dismiss"]
+    removed["Removed from pending — no trace kept"]
+
+    agent --> propose --> pending
+    pending -->|"Confirm"| confirm --> confirmed --> visible
+    pending -->|"Dismiss"| dismiss --> removed
+
+    classDef decision stroke-width:3px
+    class pending decision
+```
 
 This is AccessCanary's central mechanism: the one state-changing tool **does not** execute findings unilaterally:
 
@@ -70,6 +130,28 @@ This is AccessCanary's central mechanism: the one state-changing tool **does not
 
 This is what "thoughtful WebMCP" means concretely: the state-changing tool is annotated `readOnlyHint: false`, but its actual effect is gated behind human decision, not direct execution.
 
+## Evidence-backed handoff
+
+Inspection results are useful only if a reviewer can understand why a finding was proposed.
+The tool layer therefore keeps one bounded `AuditEvidence` snapshot in a ref. Each inspection
+stores its tool name, target selector, short summary, a few supporting details, and an ISO
+timestamp. The next `report_violation` proposal receives that snapshot without storing DOM
+nodes or unbounded tool output.
+
+The evidence follows the finding through the same confirmation boundary:
+
+1. An inspection tool produces a structured observation.
+2. `report_violation` stages the observation with the proposed category, severity, and description.
+3. The pending card exposes the evidence in a native disclosure for human review.
+4. Confirmation preserves the evidence on the permanent violation record; dismissal discards it.
+5. `Export audit brief` serializes confirmed findings to a dated JSON file for issue trackers,
+   code review, or regression records.
+
+This is intentionally a latest-observation model, not a claim that the agent has a complete
+browser recording. Evidence is bounded for privacy, performance, and WebMCP output-size safety.
+The live-region observation reports DOM mutation state, not whether a specific screen reader
+actually spoke the message.
+
 ## Why React Context instead of Redux/Zustand
 
 Two small stores (`violationsStore` and `narrationStore`), each with 2–3 actions, on a single-page app with one user session. An external library adds dependency weight and boilerplate with no benefit at this scale. React's `useReducer` + `Context` is the right-sized tool. (See [`docs/DEVELOPMENT.md`](DEVELOPMENT.md) for the fuller reasoning, including why an earlier design with Zod-based schemas was reconsidered for the same "avoid unnecessary complexity/coupling" reason.)
@@ -80,6 +162,13 @@ Documented in full in [`docs/DEVELOPMENT.md`](DEVELOPMENT.md): the installed Zod
 
 ## The focus-trace overlay's mechanism
 
-![placeholder: diagram showing focusin event -> containerRef bounding rect diff -> CSS transform on the trace dot](images/focus-trace-mechanism.png)
+```mermaid
+flowchart LR
+    step1["STEP 1<br/>User presses Tab — browser fires a native 'focusin' event"]
+    step2["STEP 2<br/>Compute the focused element's center, relative to the container<br/><br/>containerRect = container.getBoundingClientRect()<br/>targetRect = target.getBoundingClientRect()<br/>x = targetRect.left + targetRect.width/2 - containerRect.left<br/>y = targetRect.top + targetRect.height/2 - containerRect.top"]
+    step3["STEP 3<br/>CSS transform: translate(x, y) — the dot glides to the new position"]
+
+    step1 --> step2 --> step3
+```
 
 `FocusTraceOverlay` listens for the browser's native `focusin` event. On each event, it checks whether the focused element is inside the form container (via `containerRef`), and if so, computes the element's center point relative to the container using `getBoundingClientRect()`. That position is applied to a glowing dot via CSS `transform: translate()`, animated with a `transition`. The dot visibly glides to wherever focus is—including into broken states (the misordered submit button, the trapped date-picker)—making the underlying bug visible without narration text required.
