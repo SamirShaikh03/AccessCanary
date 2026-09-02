@@ -21,6 +21,15 @@ export type ViolationCategory =
   | 'silent-live-region'
   | 'keyboard-trap';
 
+/** Bounded observation retained as proof for a human-reviewed finding. */
+export interface AuditEvidence {
+  toolName: string;
+  selector: string;
+  summary: string;
+  details: string[];
+  observedAt: string;
+}
+
 /** A single accessibility violation, as reported by the agent. */
 export interface Violation {
   id: string;
@@ -34,6 +43,8 @@ export interface Violation {
   timestamp: string;
   /** Whether a human has confirmed this finding (vs. agent-proposed only). */
   confirmed: boolean;
+  /** The latest live observation that supports this finding. */
+  evidence?: AuditEvidence;
 }
 
 /** A violation the agent wants to log but hasn't been confirmed yet. */

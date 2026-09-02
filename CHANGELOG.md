@@ -4,6 +4,12 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Added
+- Evidence-backed violation review with bounded tool observations attached to proposed findings
+- Client-side JSON audit-brief export for confirmed findings
+- In-page workflow guidance explaining WebMCP inspection and the three reproduction paths
+- Responsive evidence disclosure in pending violation cards
+
 ## [0.4.0] — 2026-09-03
 
 ### Added

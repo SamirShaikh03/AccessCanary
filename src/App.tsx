@@ -66,6 +66,62 @@ function AppShell() {
           <NarrationPanel />
         </aside>
       </main>
+
+      <section className={styles.guide} aria-labelledby="guide-title">
+        <div className={styles.guideIntro}>
+          <p className={styles.stageLabel}>Field guide</p>
+          <h2 id="guide-title" className={styles.guideTitle}>How this WebMCP demo works</h2>
+          <p className={styles.guideSummary}>
+            AccessCanary lets an agent inspect the page while a person operates it. The agent
+            can observe and propose findings, but only a human can confirm a violation.
+          </p>
+        </div>
+
+        <ol className={styles.workflow}>
+          <li className={styles.workflowStep}>
+            <span className={styles.stepNumber}>01</span>
+            <div>
+              <h3>Operate the form</h3>
+              <p>Tab through the controls, open the date picker, and trigger the income validation state.</p>
+            </div>
+          </li>
+          <li className={styles.workflowStep}>
+            <span className={styles.stepNumber}>02</span>
+            <div>
+              <h3>Let WebMCP inspect live state</h3>
+              <p>The agent calls browser tools to read focus order, live-region activity, roles, and focus behavior.</p>
+            </div>
+          </li>
+          <li className={styles.workflowStep}>
+            <span className={styles.stepNumber}>03</span>
+            <div>
+              <h3>Review before recording</h3>
+              <p>Proposed findings appear in Agent narration. Confirming one adds it to the violation log.</p>
+            </div>
+          </li>
+        </ol>
+
+        <div className={styles.testGuide}>
+          <div className={styles.testGuideHeader}>
+            <p className={styles.stageLabel}>Reproduction checklist</p>
+            <span className={styles.testGuideHint}>Three intentional defects</span>
+          </div>
+          <ol className={styles.testList}>
+            <li>
+              <strong>Broken focus order</strong>
+              <span>Reload the page, do not click a form field, then press Tab once. Submit appears before the fields because it has a positive tab index. Clicking a field first starts Tab navigation from that field and will not reproduce this defect.</span>
+            </li>
+            <li>
+              <strong>Silent validation message</strong>
+              <span>Focus Annual household income, leave it empty, then Tab away. The error appears visually without an ARIA-live announcement.</span>
+            </li>
+            <li>
+              <strong>Keyboard trap</strong>
+              <span>Activate Choose date, then press Tab repeatedly through day, month, and year. Focus loops instead of returning to the page.</span>
+            </li>
+          </ol>
+        </div>
+      </section>
     </div>
   );
 }

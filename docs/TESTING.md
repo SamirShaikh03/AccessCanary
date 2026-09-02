@@ -66,3 +66,17 @@ npx tsc --noEmit
 ```
 
 Also runs automatically as the first step of `npm run build`. The project type-checks clean.
+
+## Evidence and export smoke test
+
+Use this workflow after changing tool or store code:
+
+1. Start the app with `npm run dev` and open the local URL in a browser with WebMCP enabled.
+2. Invoke an inspection tool through the Tool Inspector.
+3. Invoke `report_violation` with a finding that matches the observation. Expand **View supporting evidence** on the pending card.
+4. Check that the card names the inspection tool, selector, summary, and bounded details.
+5. Confirm the finding, select **Export audit brief**, and check the downloaded JSON for `product`, `generatedAt`, `confirmedCount`, and `findings[].evidence`.
+6. Repeat with Dismiss and confirm that a dismissed finding is absent from the exported log.
+
+The export is a client-side artifact. It does not upload findings, include DOM nodes, or claim
+that a screen reader spoke a message; it records what browser inspection observed.

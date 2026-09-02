@@ -1,8 +1,10 @@
 import styles from './NarrationPanel.module.css';
+import type { AuditEvidence } from '../../types/accessibility';
 
 interface PendingViolationCardProps {
   description: string;
   selector: string;
+  evidence?: AuditEvidence;
   onConfirm: () => void;
   onDismiss: () => void;
 }
@@ -17,6 +19,7 @@ interface PendingViolationCardProps {
 export function PendingViolationCard({
   description,
   selector,
+  evidence,
   onConfirm,
   onDismiss,
 }: PendingViolationCardProps) {
@@ -63,6 +66,21 @@ export function PendingViolationCard({
           Confirm violation
         </button>
       </div>
+
+      {evidence && (
+        <details className={styles.evidenceDetails}>
+          <summary>View supporting evidence</summary>
+          <div className={styles.evidenceBody}>
+            <p><strong>{evidence.toolName}</strong> observed {evidence.selector}</p>
+            <p>{evidence.summary}</p>
+            {evidence.details.length > 0 && (
+              <ul>
+                {evidence.details.map((detail) => <li key={detail}>{detail}</li>)}
+              </ul>
+            )}
+          </div>
+        </details>
+      )}
     </div>
   );
 }

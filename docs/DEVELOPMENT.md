@@ -45,3 +45,19 @@ A second test-authoring mistake was caught and fixed: an early version of the "p
 ## Guiding principle throughout
 
 Where a fix was needed, the question asked was always: *is this a bug in the logic being tested, or a mismatch between the test environment and reality?* Production logic was only changed when actually wrong. Where the mismatch was in the test's environment or assumptions instead (jsdom's lack of layout, a flawed test fixture), the test was fixed and the reason documented—rather than weakening real application logic just to make a test turn green.
+
+## Phase 5 — Evidence-backed audit handoff
+
+The original narration feed made the demo understandable in the moment, but it was transient:
+once a finding was confirmed, a developer had no compact artifact showing what the agent had
+actually observed. Phase 5 adds `AuditEvidence` as a small domain type and retains only the
+latest bounded inspection result while the WebMCP session is active.
+
+Evidence is attached at the existing `report_violation` boundary, travels through the existing
+human confirmation reducer, and is rendered by the pending card. Confirmed findings can be
+serialized client-side as a JSON audit brief. No backend, authentication, DOM serialization, or
+new dependency is needed.
+
+The model is intentionally honest: it records browser-observed state, not a full session replay
+and not guaranteed screen-reader speech. A concise reproducible observation is more useful than
+an overconfident claim in a real audit workflow.

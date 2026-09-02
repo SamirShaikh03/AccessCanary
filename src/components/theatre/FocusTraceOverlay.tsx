@@ -21,23 +21,44 @@ export function FocusTraceOverlay({ containerRef }: FocusTraceOverlayProps) {
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-    function handleFocusIn(event: FocusEvent) {
+    let focusedTarget: HTMLElement | null = null;
+
+    function updatePosition() {
       const container = containerRef.current;
-      const target = event.target;
-      if (!container || !(target instanceof HTMLElement) || !container.contains(target)) {
+      if (!container || !focusedTarget || !container.contains(focusedTarget)) {
         setPosition(null);
         return;
       }
       const containerRect = container.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
+      const targetRect = focusedTarget.getBoundingClientRect();
+      const markerRadius = 11;
+      const edgeOffset = 8;
       setPosition({
-        x: targetRect.left + targetRect.width / 2 - containerRect.left,
-        y: targetRect.top + targetRect.height / 2 - containerRect.top,
+        x: Math.min(
+          Math.max(targetRect.right - containerRect.left + edgeOffset, markerRadius),
+          containerRect.width - markerRadius,
+        ),
+        y: Math.min(
+          Math.max(targetRect.top - containerRect.top - edgeOffset, markerRadius),
+          containerRect.height - markerRadius,
+        ),
       });
     }
 
+    function handleFocusIn(event: FocusEvent) {
+      focusedTarget = event.target instanceof HTMLElement ? event.target : null;
+      updatePosition();
+    }
+
     document.addEventListener('focusin', handleFocusIn);
-    return () => document.removeEventListener('focusin', handleFocusIn);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
   }, [containerRef]);
 
   if (!position) return null;

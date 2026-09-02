@@ -19,9 +19,18 @@ Automated tools (axe-core, Lighthouse, WAVE) are excellent at catching static is
 
 WebMCP tools can do that. This project demonstrates how.
 
+## The useful handoff
+
+Most accessibility reports stop at a claim: "this might be broken." AccessCanary keeps the
+latest bounded observation beside the proposed finding: which tool ran, which selector it
+inspected, and the short focus, role, or live-region result. A person reviews that evidence
+before confirmation, then can download the confirmed findings as a JSON audit brief for a
+developer, ticket, or regression record. The browser remains the source of truth; no backend
+or account is required.
+
 ## What it does
 
-AccessCanary presents a mock government-benefits form containing **three real, intentional accessibility defects**—the kind that actually occur in production code. As a human tabs through the form, an AI agent calls WebMCP tools to inspect live DOM state, narrates what it observes in a side panel, and proposes findings. **Nothing gets logged until the human approves it.** The agent can flag, but only a person decides what counts as a real violation.
+AccessCanary presents a mock government-benefits form containing **three real, intentional accessibility defects**—the kind that actually occur in production code. As a human tabs through the form, an AI agent calls WebMCP tools to inspect live DOM state, narrates what it observes in a side panel, and proposes evidence-backed findings. **Nothing gets logged until the human approves it.** Confirmed findings can be exported as an audit brief, giving the next developer a reproducible starting point instead of a vague warning.
 
 ### The six WebMCP tools
 
@@ -35,6 +44,10 @@ AccessCanary presents a mock government-benefits form containing **three real, i
 | `get_violation_log` | Returns confirmed violation count and details | ✓ Yes |
 
 Full technical specs (schemas, character budgets, security annotations) are in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+Every proposed finding can include bounded evidence from the most recent inspection. Expand
+**View supporting evidence** before confirming a finding. After confirmation, use
+**Export audit brief** to download a JSON handoff containing the finding and its observation.
 
 ### The three bugs it catches
 
@@ -72,7 +85,8 @@ To test the deployed version with a live AI agent:
 3. Install the [Model Context Tool Inspector](https://chromewebstore.google.com/detail/webmcp-inspector/ddmnodehiebeklbngpeeghmcohomfimd) extension.
 4. Tab through the mock form — watch the **focus-trace dot** follow your keyboard focus and the **narration panel** report what each tool call finds.
 5. Trigger the income field's validation error and tab through the date picker more than twice to see each bug in action.
-6. Open the Tool Inspector to invoke tools directly and inspect raw input/output.
+6. Ask the agent to report a finding, review its supporting evidence, confirm it, and export the audit brief.
+7. Open the Tool Inspector to invoke tools directly and inspect raw input/output.
 
 See [`docs/TESTING.md`](docs/TESTING.md) for the full testing guide, including manual and automated test options.
 

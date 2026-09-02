@@ -3,6 +3,22 @@ import { useNarrationStore } from '../../store/useNarrationStore';
 import { PendingViolationCard } from './PendingViolationCard';
 import styles from './NarrationPanel.module.css';
 
+function downloadAuditBrief(violations: ReturnType<typeof useViolationsStore>['violations']): void {
+  const report = {
+    product: 'AccessCanary',
+    generatedAt: new Date().toISOString(),
+    confirmedCount: violations.length,
+    findings: violations,
+  };
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `accesscanary-audit-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 /**
  * NarrationPanel — the "observer" half of the theatre layout. Shows, in
  * plain language, what each WebMCP tool call is doing as it happens, any
@@ -39,6 +55,7 @@ export function NarrationPanel() {
                 key={p.pendingId}
                 description={p.description}
                 selector={p.selector}
+                evidence={p.evidence}
                 onConfirm={() => confirmViolation(p.pendingId)}
                 onDismiss={() => dismissViolation(p.pendingId)}
               />
@@ -80,6 +97,12 @@ export function NarrationPanel() {
 
       {violations.length > 0 && (
         <section aria-label="Confirmed violations" className={styles.sectionBlock}>
+          <div className={styles.confirmedHeader}>
+            <p className={styles.confirmedLabel}>Confirmed audit findings</p>
+            <button type="button" className={styles.exportButton} onClick={() => downloadAuditBrief(violations)}>
+              Export audit brief
+            </button>
+          </div>
           <ul className={styles.confirmedList}>
             {violations.map((v) => (
               <li key={v.id} className={styles.confirmedItem}>

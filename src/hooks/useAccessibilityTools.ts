@@ -8,7 +8,7 @@ import {
 import { getAriaLiveState } from '../lib/liveRegionTracker';
 import { useViolationsStore } from '../store/useViolationsStore';
 import { useNarrationStore } from '../store/useNarrationStore';
-import type { FocusStep, AriaLiveState, ElementRoleInfo, Violation } from '../types/accessibility';
+import type { AuditEvidence, FocusStep, AriaLiveState, ElementRoleInfo, Violation } from '../types/accessibility';
 
 /**
  * Reshape helpers: WebMCP's JSON-Schema-derived output types require a
@@ -46,6 +46,7 @@ const plainViolation = (v: Violation) => ({
   description: v.description,
   selector: v.selector,
   timestamp: v.timestamp,
+  ...(v.evidence ? { evidence: { ...v.evidence, details: [...v.evidence.details] } } : {}),
 });
 
 /**
@@ -219,6 +220,7 @@ export function useAccessibilityTools() {
   // closure without forcing re-registration on every state change — a ref
   // kept in sync via effect gives fresh reads without that churn.
   const violationsRef = useRef(violations);
+  const latestEvidenceRef = useRef<AuditEvidence | undefined>(undefined);
   useEffect(() => {
     violationsRef.current = violations;
   }, [violations]);
@@ -234,6 +236,13 @@ export function useAccessibilityTools() {
     execute: async (input: { startSelector: string; limit?: number }) => {
       const entryId = addEntry('get_focus_order', `Checking tab order from ${input.startSelector}...`);
       const steps = getFocusOrder(input.startSelector, input.limit ?? 20).map(plainFocusStep);
+      latestEvidenceRef.current = {
+        toolName: 'get_focus_order',
+        selector: input.startSelector,
+        summary: `Observed ${steps.length} focus stops from ${input.startSelector}.`,
+        details: steps.slice(0, 4).map((step) => `${step.order + 1}. ${step.accessibleLabel} (${step.selector})`),
+        observedAt: new Date().toISOString(),
+      };
       updateEntry(entryId, { message: `Traced ${steps.length} steps in the tab order.`, status: 'complete' });
       return { steps };
     },
@@ -260,6 +269,15 @@ export function useAccessibilityTools() {
       const path = simulateTabSequence(input.startSelector, Math.min(input.steps, 10)).map(plainFocusStep);
       const uniqueStops = new Set(path.map((p) => p.selector)).size;
       const looksTrapped = uniqueStops <= 2 && path.length > 3;
+      latestEvidenceRef.current = {
+        toolName: 'simulate_tab_sequence',
+        selector: input.startSelector,
+        summary: looksTrapped
+          ? `Focus repeated across ${uniqueStops} stop(s) during ${path.length - 1} simulated Tab presses.`
+          : `Focus reached ${uniqueStops} distinct stop(s) during the simulated journey.`,
+        details: path.slice(0, 5).map((step) => `${step.order + 1}. ${step.accessibleLabel} (${step.selector})`),
+        observedAt: new Date().toISOString(),
+      };
       updateEntry(entryId, {
         message: looksTrapped
           ? `Focus only cycled between ${uniqueStops} elements across ${path.length} presses — looks like a trap.`
@@ -287,6 +305,13 @@ export function useAccessibilityTools() {
       const entryId = addEntry('get_aria_live_state', `Checking whether ${input.selector} announces changes...`);
       const result = plainAriaLiveState(getAriaLiveState(input.selector));
       const silent = !result.isLive || !result.firedOnLastChange;
+      latestEvidenceRef.current = {
+        toolName: 'get_aria_live_state',
+        selector: input.selector,
+        summary: silent ? 'A visual change was not observed as an announced live-region update.' : 'The live region announced its latest change.',
+        details: [`Live: ${result.isLive}`, `Politeness: ${result.politeness}`, `Fired on last change: ${result.firedOnLastChange}`],
+        observedAt: new Date().toISOString(),
+      };
       updateEntry(entryId, {
         message: silent
           ? `${input.selector} changed but was never announced to screen readers.`
@@ -313,6 +338,13 @@ export function useAccessibilityTools() {
     execute: async (input: { selector: string }) => {
       const entryId = addEntry('get_element_role', `Reading accessible role/name for ${input.selector}...`);
       const result = plainElementRoleInfo(getElementRoleInfo(input.selector));
+      latestEvidenceRef.current = {
+        toolName: 'get_element_role',
+        selector: input.selector,
+        summary: `Observed role "${result.role}" with accessible name "${result.accessibleName}".`,
+        details: Object.entries(result.states).map(([key, value]) => `${key}: ${value}`).slice(0, 4),
+        observedAt: new Date().toISOString(),
+      };
       updateEntry(entryId, {
         message: `${input.selector} is exposed as "${result.role}" named "${result.accessibleName}".`,
         status: 'complete',
@@ -336,7 +368,7 @@ export function useAccessibilityTools() {
     },
     execute: async (input: ReportViolationInput) => {
       const entryId = addEntry('report_violation', `Flagging a possible violation: ${input.description}`);
-      const pendingId = proposeViolation(input);
+      const pendingId = proposeViolation({ ...input, evidence: latestEvidenceRef.current });
       updateEntry(entryId, {
         message: `Awaiting your confirmation — see the pending finding below.`,
         status: 'flagged',

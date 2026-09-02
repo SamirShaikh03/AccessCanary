@@ -70,7 +70,7 @@ export function DatePickerTrap({ label }: DatePickerTrapProps) {
           className={styles.input}
           onClick={() => setIsOpen(true)}
         >
-          Select a date
+          Open date picker
         </button>
       )}
       {isOpen && (
